@@ -89,8 +89,14 @@ def curl_moment(token, moment, output_directory):
     filename = filename[1].replace('"', '')
 
     fullname = f'{moment_id}-{filename}'
-    fullpath = os.path.join(output_directory, fullname)
 
+    if len(fullname) > 255:
+        name, extension = os.path.splitext(fullname)
+        extra_length = len(fullname) - 255
+        name = name[:-extra_length]
+        fullname = f'{name}.{extension}'
+      
+    fullpath = os.path.join(output_directory, fullname)
 
     open(fullpath, 'wb').write(response.content)
     moment_date = moment['moment_date']
