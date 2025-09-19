@@ -92,9 +92,9 @@ def curl_moment(token, moment, output_directory):
 
     if len(fullname) > 255:
         name, extension = os.path.splitext(fullname)
-        extra_length = len(fullname) - 255
+        extra_length = len(fullname) - 255 - 3
         name = name[:-extra_length]
-        fullname = f'{name}.{extension}'
+        fullname = f'{name}{extension}'
       
     fullpath = os.path.join(output_directory, fullname)
 
