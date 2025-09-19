@@ -1,5 +1,5 @@
 # shutterfly-photo-exporter
-A script to download all photos from Shutterfly.
+Download photos & videos from Shutterfly in full resolution
 
 Not related, authorized or endorsed by Shutterfly in any way.
 
