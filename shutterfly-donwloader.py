@@ -185,4 +185,4 @@ class ShutterflyDownloader:
 if __name__=='__main__':
     token = sys.argv[1]
     sd = ShutterflyDownloader(token)
-    sd.main()
+    sd.do_all()
