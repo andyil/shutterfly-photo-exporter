@@ -91,10 +91,12 @@ def curl_moment(token, moment, output_directory):
     fullname = f'{moment_id}-{filename}'
 
     if len(fullname) > 255:
+        logger.info('Length of %s is %s', fullname, len(fullname))
         name, extension = os.path.splitext(fullname)
         extra_length = len(fullname) - 255 - 3
         name = name[:extra_length]
         fullname = f'{name}{extension}'
+        logger.info('After fixing, length of %s is %s', fullname, len(fullname))
       
     fullpath = os.path.join(output_directory, fullname)
 
