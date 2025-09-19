@@ -173,7 +173,7 @@ class ShutterflyDownloader:
                     else:
                         file_sz = os.path.getsize(r)
                         logger.info('Downloaded %s (%s bytes)', r, file_sz)
-                logger.info('%s files to finish', len(finished))
+                logger.info('%s files to finish', len(futures))
 
 
 
