@@ -89,6 +89,9 @@ def curl_moment(token, moment, output_directory):
     filename = filename[1].replace('"', '')
 
     fullname = f'{moment_id}-{filename}'
+    if len(fullname) > 255:
+        name, extension = os.path.splitext(filename)
+        fullname = f'{moment_id}-name-too-long.{extension}'
     fullpath = os.path.join(output_directory, fullname)
 
 
@@ -129,7 +132,12 @@ class ShutterflyDownloader:
         self.output_dir = outdir
         self.metadata_dir = metadata
 
+    def initialize(self):
+        self.prepare_output_dirs()
 
+    def do_all(self):
+        self.initialize()
+        self.download_all()
 
     def download_one_moment(self, moment):
         moment_id = moment['uid']
@@ -151,9 +159,7 @@ class ShutterflyDownloader:
         moments = j['result']['payload']['moments']
         total = len(moments)
         logger.info(f'Token Validated. Got %s moments', total)
-        self.prepare_output_dirs(moments[0]['life_uid'])
 
-        downloaded = 0
         futures = set()
         with ThreadPoolExecutor(max_workers=8) as tp:
             logger.info('Submitting')
@@ -178,9 +184,6 @@ class ShutterflyDownloader:
 
 
 if __name__=='__main__':
-    if len(sys.argv) != 2:
-      logger.error('One mandatory paramter: token')
-      exit(1)
     token = sys.argv[1]
     sd = ShutterflyDownloader(token)
-    sd.download_all()
+    sd.do_all()
