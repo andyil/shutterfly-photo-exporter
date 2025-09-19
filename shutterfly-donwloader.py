@@ -178,6 +178,9 @@ class ShutterflyDownloader:
 
 
 if __name__=='__main__':
+    if len(sys.argv) != 2:
+      logger.error('One mandatory paramter: token')
+      exit(1)
     token = sys.argv[1]
     sd = ShutterflyDownloader(token)
     sd.download_all()
