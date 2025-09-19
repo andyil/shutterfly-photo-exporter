@@ -151,7 +151,7 @@ class ShutterflyDownloader:
         moments = j['result']['payload']['moments']
         total = len(moments)
         logger.info(f'Token Validated. Got %s moments', total)
-        self.prepare_output_dirs(moments[0]['life_uid']
+        self.prepare_output_dirs(moments[0]['life_uid'])
 
         downloaded = 0
         futures = set()
