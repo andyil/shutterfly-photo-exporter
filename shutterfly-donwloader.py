@@ -5,6 +5,7 @@
 # ///
 
 import requests
+from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
 import logging
 import shutil
 import json
@@ -114,21 +115,38 @@ def curl_moment_3_retries(token, moment, output_directory):
 
 class ShutterflyDownloader:
 
-
     def __init__(self, access_token):
         self.access_token = access_token
+        self.output_dir = None
+        self.metadata_dir = None
 
-
-    def prepare_output_dir(self, user_id):
+    def prepare_output_dirs(self, user_id):
         home = os.path.expanduser('~')
         outdir = os.path.join(home, 'shutterfly-downloader', user_id, 'media')
         metadata = os.path.join(home, 'shutterfly-downloader', user_id, '.metadata')
         os.makedirs(outdir, exist_ok=True)
         os.makedirs(metadata, exist_ok=True)
-        return outdir, metadata
+        self.output_dir = outdir
+        self.metadata_dir = metadata
 
-    def main(self):
-        total_bytes = 0
+    def initialize(self):
+        self.prepare_output_dirs()
+
+    def do_all(self):
+        self.initialize()
+        self.download_all()
+
+    def download_one_moment(self, moment):
+        moment_id = moment['uid']
+        seen_file = os.path.join(self.metadata_dir, f'{moment_id}.txt')
+        if os.path.exists(seen_file):
+            return
+        full_path = curl_moment_3_retries(self.access_token, moment, self.output_dir)
+        open(seen_file, 'w')
+        return full_path
+
+
+    def download_all(self):
         j = curl_metadata(self.access_token)
         result = j['result']
         message = result['message']
@@ -139,40 +157,28 @@ class ShutterflyDownloader:
         total = len(moments)
         logger.info(f'Token Validated. Got %s moments', total)
 
-        media_dir, metadata_dir  = self.prepare_output_dir(moments[0]['life_uid'])
 
-        skipped = 0
-        started = None
         downloaded = 0
-        printed_skipping = False
-        for i, moment in enumerate(moments):
-            moment_id = moment['uid']
-            seen_file = os.path.join(metadata_dir, f'{moment_id}.txt')
-            if os.path.exists(seen_file):
-                skipped += 1
-                if not printed_skipping:
-                    logger.info('Skipping already downloaded photos')
-                    printed_skipping = True
-            else:
-                if skipped:
-                    logger.info(f'Skipped %s photos previously downloaded', skipped)
-                if started is None:
-                    started = time.time()
-                skipped = 0
-                full_path = curl_moment_3_retries(self.access_token, moment, media_dir)
-                downloaded += 1
-                file_sz = os.path.getsize(full_path)
-                total_bytes += file_sz
-                _, _, free = shutil.disk_usage(full_path)
-                photos_left = total - i
-                speed = downloaded / (time.time() - started) * 60
-                speed_r = round(speed, 2)
-                time_to_finish = round(photos_left / speed)
+        futures = set()
+        with ThreadPoolExecutor(max_workers=8) as tp:
+            logger.info('Submitting')
+            for i, moment in enumerate(moments):
+                future = tp.submit(self.download_one_moment, moment)
+                futures.add(future)
+            logger.info(f'Sent {len(futures)} download jobs')
 
-                logger.info(f'Downloaded {i} {full_path} of {total}, {file_sz}, total {total_bytes}, {speed_r} photos/min, {time_to_finish} minutes to finish (left: {free})')
-                open(seen_file, 'w')
+            skipped = 0
 
-
+            while futures:
+                finished, futures = wait(futures, None, FIRST_COMPLETED)
+                for f in finished:
+                    r = f.result()
+                    if r is None:
+                        skipped += 1
+                    else:
+                        file_sz = os.path.getsize(r)
+                        logger.info('Downloaded %s (%s bytes)', r, file_sz)
+                logger.info('%s files to finish', len(finished))
 
 
 
